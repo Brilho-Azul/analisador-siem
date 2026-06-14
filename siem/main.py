@@ -2,7 +2,7 @@ from core.reader import tail_log
 from core.parser import parse_line
 from core.rules import avaliar_evento
 
-ARQUIVO_DE_LOG = "/var/log/nginx/access.log"
+ARQUIVO_DE_LOG = "/var/log/nginx/siem_access.log"
 
 
 def main():

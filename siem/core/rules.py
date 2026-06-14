@@ -1,6 +1,6 @@
 import time
 import re
-from integrations.telegram import enviar_alerta
+from telegram.telegram import enviar_alerta
 
 
 PADRAO_LFI = re.compile(r'(?i)(\.\./|\.\.\\|%2e%2e%2f|/etc/passwd)')
