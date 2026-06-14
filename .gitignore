@@ -8,3 +8,6 @@ ENV/
 env/
 *.log
 .docker/
+.env
+.venv
+./.env

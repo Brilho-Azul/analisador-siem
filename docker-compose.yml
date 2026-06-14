@@ -24,6 +24,19 @@ services:
     networks:
       - app-net
 
+  siem:
+    build: ./siem
+    container_name: siem_analyzer
+    restart: always
+    volumes:
+      - nginx_logs:/var/log/nginx:ro
+    depends_on:
+      - nginx
+    networks:
+      - app-net
+    env_file:
+      - .env
+
 networks:
   app-net:
     driver: bridge
