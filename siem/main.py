@@ -13,6 +13,8 @@ def main():
         evento_normalizado = parse_line(linha_bruta)
 
         if evento_normalizado:
+            print(
+                f"[DEBUG] {evento_normalizado['ip']} | {evento_normalizado['method']} {evento_normalizado['uri']} -> HTTP {evento_normalizado['status']}")
             avaliar_evento(evento_normalizado)
 
 

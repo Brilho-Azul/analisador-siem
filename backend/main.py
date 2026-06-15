@@ -1,3 +1,4 @@
+import hashlib
 import os
 from typing import List, Optional
 from fastapi import FastAPI, HTTPException, status, Depends
@@ -24,7 +25,25 @@ class ProdutoDB(Base):
     preco = Column(Float)
     descricao = Column(String, nullable=True)
 
+class UsuarioDB(Base):
+    __tablename__ = "usuarios"
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, index=True)
+    hashed_password = Column(String)
+
+
+def seed_default_user():
+    db = SessionLocal()
+    user = db.query(UsuarioDB).filter(UsuarioDB.username == "admin").first()
+    if not user:
+        hashed = hashlib.sha256("admin".encode()).hexdigest()
+        db.add(UsuarioDB(username="admin", hashed_password=hashed))
+        db.commit()
+    db.close()
+
+
 Base.metadata.create_all(bind=engine)
+seed_default_user()
 
 # Dependency
 def get_db():
@@ -35,6 +54,10 @@ def get_db():
 app = FastAPI(title="Produtos API", version="1.0.0")
 
 # Schemas
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
 class ProdutoBase(BaseModel):
     nome: str = Field(..., min_length=1)
     preco: float = Field(..., gt=0)
@@ -89,3 +112,15 @@ def deletar_produto(produto_id: int, db: Session = Depends(get_db)):
     db.delete(db_produto)
     db.commit()
     return {"message": "Produto deletado com sucesso"}
+
+
+@app.post("/api/auth/login")
+def login(credenciais: LoginRequest, db: Session = Depends(get_db)):
+    hashed = hashlib.sha256(credenciais.password.encode()).hexdigest()
+    usuario = db.query(UsuarioDB).filter(
+        UsuarioDB.username == credenciais.username,
+        UsuarioDB.hashed_password == hashed
+    ).first()
+    if not usuario:
+        raise HTTPException(status_code=401, detail="Usuário ou senha inválidos")
+    return {"message": "Login realizado com sucesso", "username": usuario.username}
