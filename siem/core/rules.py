@@ -11,7 +11,6 @@ PADRAO_SQLI = re.compile(r'(?i)(UNION\s+SELECT|OR\s+1=1|--|\'|%27|;|%3B)')
 
 historico_requisicoes = {}
 historico_404 = {}
-historico_405 = {}
 
 DOS_LIMITE = 50
 DOS_JANELA = 5
@@ -19,8 +18,10 @@ DOS_JANELA = 5
 FUZZ_LIMITE = 15
 FUZZ_JANELA = 10
 
-MNA_LIMITE = 5
-MNA_JANELA = 10
+historico_login_falho = {}
+
+LOGIN_FAIL_LIMITE = 5
+LOGIN_FAIL_JANELA = 60
 
 
 def limpar_registros_antigos(dicionario, tempo_atual, janela):
@@ -59,21 +60,20 @@ def checar_fuzzing(ip, status, tempo_atual):
         historico_404[ip] = []
 
 
-def checar_metodo_nao_permitido(ip, status, tempo_atual):
-    if status != 405:
+def checar_brute_force_login(ip, uri, status, tempo_atual):
+    if "/api/auth/login" not in uri or status != 401:
         return
 
-    if ip not in historico_405:
-        historico_405[ip] = []
+    if ip not in historico_login_falho:
+        historico_login_falho[ip] = []
 
-    historico_405[ip].append(tempo_atual)
-    limpar_registros_antigos(historico_405, tempo_atual, MNA_JANELA)
+    historico_login_falho[ip].append(tempo_atual)
+    limpar_registros_antigos(historico_login_falho, tempo_atual, LOGIN_FAIL_JANELA)
 
-    if len(historico_405[ip]) > MNA_LIMITE:
-        alerta = f"🛠️ *Mapeamento de API (405)* detectado!\nIP: `{ip}`\nTentativas de métodos inválidos."
+    if len(historico_login_falho[ip]) > LOGIN_FAIL_LIMITE:
+        alerta = f"🚨 Brute Force de Login detectado! IP: {ip}. Múltiplas tentativas de autenticação falharam."
         enviar_alerta(alerta)
-        historico_405[ip] = []
-
+        historico_login_falho[ip] = []
 
 
 def checar_lfi(ip, uri):
@@ -82,9 +82,14 @@ def checar_lfi(ip, uri):
         enviar_alerta(alerta)
 
 
-def checar_sqli(ip, uri):
-    if PADRAO_SQLI.search(uri):
+def checar_sqli(ip, uri, body=''):
+    texto = uri
+    if body:
+        texto += ' ' + body
+    if PADRAO_SQLI.search(texto):
         alerta = f"🚨 *SQL Injection*\nIP: `{ip}`\nAlvo: `{uri}`"
+        if body:
+            alerta += f"\nPayload: `{body}`"
         enviar_alerta(alerta)
 
 
@@ -94,10 +99,11 @@ def avaliar_evento(evento):
     ip = evento['ip']
     status = evento['status']
     uri = evento['uri']
+    body = evento.get('body', '')
 
     checar_dos(ip, tempo_atual)
     checar_fuzzing(ip, status, tempo_atual)
-    checar_metodo_nao_permitido(ip, status, tempo_atual)
 
     checar_lfi(ip, uri)
-    checar_sqli(ip, uri)
+    checar_sqli(ip, uri, body)
+    checar_brute_force_login(ip, uri, status, tempo_atual)
