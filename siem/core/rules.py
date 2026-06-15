@@ -82,9 +82,14 @@ def checar_lfi(ip, uri):
         enviar_alerta(alerta)
 
 
-def checar_sqli(ip, uri):
-    if PADRAO_SQLI.search(uri):
+def checar_sqli(ip, uri, body=''):
+    texto = uri
+    if body:
+        texto += ' ' + body
+    if PADRAO_SQLI.search(texto):
         alerta = f"🚨 *SQL Injection*\nIP: `{ip}`\nAlvo: `{uri}`"
+        if body:
+            alerta += f"\nPayload: `{body}`"
         enviar_alerta(alerta)
 
 
@@ -94,10 +99,11 @@ def avaliar_evento(evento):
     ip = evento['ip']
     status = evento['status']
     uri = evento['uri']
+    body = evento.get('body', '')
 
     checar_dos(ip, tempo_atual)
     checar_fuzzing(ip, status, tempo_atual)
 
     checar_lfi(ip, uri)
-    checar_sqli(ip, uri)
+    checar_sqli(ip, uri, body)
     checar_brute_force_login(ip, uri, status, tempo_atual)
